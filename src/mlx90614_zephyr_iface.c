@@ -4,7 +4,7 @@
 #include <string.h>
 #include "driver_mlx90614_interface.h"
 
-LOG_MODULE_REGISTER(mlx90614, LOG_LEVEL_DBG);
+LOG_MODULE_REGISTER(mlx90614, LOG_LEVEL_INF);
 
 static const struct device *i2c_dev;
 
@@ -30,7 +30,7 @@ uint8_t mlx90614_interface_iic_deinit(void)
 
 /* MLX90614 passes 8-bit SMBus addresses (0xB4); Zephyr expects 7-bit (0x5A).
    Shift right by 1 to convert. The library uses the 8-bit form only for PEC
-   calculation internally — the wire transaction uses the 7-bit form. */
+   calculation internally; the wire transaction uses the 7-bit form. */
 uint8_t mlx90614_interface_iic_read(uint8_t addr, uint8_t reg,
                                      uint8_t *buf, uint16_t len)
 {
@@ -40,7 +40,7 @@ uint8_t mlx90614_interface_iic_read(uint8_t addr, uint8_t reg,
     }
     int ret = i2c_write_read(i2c_dev, addr >> 1, &reg, 1, buf, len);
     if (ret) {
-        LOG_ERR("i2c_write_read(addr=0x%02x reg=0x%02x len=%u) => %d",
+        LOG_DBG("i2c_write_read(addr=0x%02x reg=0x%02x len=%u) => %d",
                 addr >> 1, reg, len, ret);
     }
     return ret ? 1 : 0;
@@ -58,7 +58,7 @@ uint8_t mlx90614_interface_iic_write(uint8_t addr, uint8_t reg,
     memcpy(&tx[1], buf, len);
     int ret = i2c_write(i2c_dev, tx, len + 1, addr >> 1);
     if (ret) {
-        LOG_ERR("i2c_write(addr=0x%02x reg=0x%02x len=%u) => %d",
+        LOG_DBG("i2c_write(addr=0x%02x reg=0x%02x len=%u) => %d",
                 addr >> 1, reg, len + 1, ret);
     }
     return ret ? 1 : 0;
@@ -77,8 +77,5 @@ void mlx90614_interface_delay_ms(uint32_t ms)
 
 void mlx90614_interface_debug_print(const char *fmt, ...)
 {
-    va_list args;
-    va_start(args, fmt);
-    vprintk(fmt, args);
-    va_end(args);
+    (void)fmt;
 }

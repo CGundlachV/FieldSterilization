@@ -1,0 +1,3 @@
+[submodule "lib/mlx90614"]
+	path = lib/mlx90614
+	url = https://github.com/libdriver/mlx90614.git

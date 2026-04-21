@@ -1,0 +1,77 @@
+mainmenu "FieldSterilization"
+
+source "Kconfig.zephyr"
+
+menu "FieldSterilization application"
+
+config FIELDSTERILIZATION_SETPOINT_CENTIC
+	int "Temperature setpoint in centi-degrees Celsius"
+	default 12100
+	range 0 25000
+	help
+	  Target object temperature. The default is 121.00 C.
+
+config FIELDSTERILIZATION_MAX_SAFE_CENTIC
+	int "Maximum safe temperature in centi-degrees Celsius"
+	default 13500
+	range 0 25000
+	help
+	  Temperature that immediately stops the run and turns the heater output off.
+
+config FIELDSTERILIZATION_VISUAL_MIN_CENTIC
+	int "Minimum display scale temperature in centi-degrees Celsius"
+	default 2000
+	range -4000 25000
+	help
+	  Lower bound for the display temperature ring.
+
+config FIELDSTERILIZATION_VISUAL_MAX_CENTIC
+	int "Maximum display scale temperature in centi-degrees Celsius"
+	default 18000
+	range -4000 25000
+	help
+	  Upper bound for the display temperature ring.
+
+config FIELDSTERILIZATION_CONTROL_WINDOW_MS
+	int "Heater software PWM window in milliseconds"
+	default 1000
+	range 1000 10000
+	help
+	  Time-proportional control period. 1000 ms is 1 Hz; larger values slow the
+	  output switching rate.
+
+config FIELDSTERILIZATION_CONTROL_KP_MILLI
+	int "Controller proportional gain, milli-percent per C"
+	default 8000
+	range 0 50000
+	help
+	  Proportional gain for the PI control loop. 8000 means 8 percent duty per C.
+
+config FIELDSTERILIZATION_CONTROL_KI_MILLI
+	int "Controller integral gain, milli-percent per C per window"
+	default 1000
+	range 0 10000
+	help
+	  Integral gain added once per control window. 1000 means 1 percent duty per C
+	  per control update.
+
+config FIELDSTERILIZATION_SENSOR_TIMEOUT_MS
+	int "Sensor timeout in milliseconds"
+	default 1500
+	range 200 10000
+	help
+	  Maximum age of the last good MLX90614 reading before output is disabled.
+
+config FIELDSTERILIZATION_BUTTON_DEBOUNCE_MS
+	int "Run button debounce interval in milliseconds"
+	default 250
+	range 20 2000
+	help
+	  Minimum time between accepted run/stop button presses.
+
+config FIELDSTERILIZATION_I2C_SCAN_ON_BOOT
+	bool "Scan I2C bus on boot"
+	help
+	  Enable only while debugging sensor wiring. The production default is off.
+
+endmenu

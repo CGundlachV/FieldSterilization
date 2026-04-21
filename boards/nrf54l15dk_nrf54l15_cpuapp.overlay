@@ -1,5 +1,20 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
+/ {
+	aliases {
+		heater0 = &heater_output;
+	};
+
+	control_outputs {
+		compatible = "gpio-leds";
+
+		heater_output: heater-output {
+			gpios = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+			label = "Heater control output";
+		};
+	};
+};
+
 &pinctrl {
 	i2c21_default: i2c21_default {
 		group1 {

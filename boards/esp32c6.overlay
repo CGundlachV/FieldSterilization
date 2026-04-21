@@ -1,45 +1,78 @@
-#include <zephyr/dt-bindings/display/gc9a01a.h>
-#include <zephyr/dt-bindings/pwm/pwm.h>
+#include <freq.h>
+#include <zephyr/dt-bindings/display/panel.h>
 #include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/pinctrl/esp32c6-pinctrl.h>
 
-/ {	chosen{
-		zephyr,display=&mydisplay;
+/ {
+	chosen {
+		zephyr,display = &mydisplay;
 	};
 
-	pwm_leds {
-		compatible = "pwm-leds";
-		status = "okay";
+	aliases {
+		sw0 = &run_button;
+		heater0 = &heater_output;
+	};
 
-		pwm_led0: pwm-led-gpio0-21 {
-			pwms = <&ledc0 0 PWM_MSEC(20) PWM_POLARITY_NORMAL>;
-			label = "PWM_LED";
+	buttons {
+		compatible = "gpio-keys";
+		debounce-interval-ms = <30>;
+
+		run_button: button-0 {
+			gpios = <&gpio0 9 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Run/stop button";
+			zephyr,code = <INPUT_KEY_0>;
 		};
 	};
 
+	control_outputs {
+		compatible = "gpio-leds";
+
+		heater_output: heater-output {
+			gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+			label = "Heater control output";
+		};
+	};
+
+	mipi_dbi_display {
+		compatible = "zephyr,mipi-dbi-spi";
+		status = "okay";
+		spi-dev = <&spi2>;
+		dc-gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		write-only;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		mydisplay: mydisplay@0 {
+			compatible = "galaxycore,gc9x01x";
+			reg = <0>;
+			mipi-max-frequency = <DT_FREQ_M(32)>;
+			width = <240>;
+			height = <240>;
+			pixel-format = <PANEL_PIXEL_FORMAT_RGB_565>;
+			display-inversion;
+			orientation = "180";
+			status = "okay";
+		};
+	};
 };
 
 &pinctrl {
-    ledc0_default: ledc0_default {
-        group1 {
-            pinmux = <LEDC_CH0_GPIO21>;
-			output-enable;
-        };
-    };
 	spim2_display: spim2_display {
 		group1 {
-			pinmux = <SPIM2_MISO_GPIO0>,
-				 <SPIM2_SCLK_GPIO1>;
+			pinmux = <SPIM2_SCLK_GPIO19>;
 		};
 
 		group2 {
-			pinmux = <SPIM2_MOSI_GPIO2>;
+			pinmux = <SPIM2_MOSI_GPIO18>;
 			output-low;
 		};
 	};
+
 	i2c0_sensor: i2c0_sensor {
 		group1 {
-			pinmux = <I2C0_SDA_GPIO6>, <I2C0_SCL_GPIO7>;
+			pinmux = <I2C0_SDA_GPIO22>, <I2C0_SCL_GPIO23>;
 			bias-pull-up;
 			drive-open-drain;
 			output-high;
@@ -47,46 +80,20 @@
 	};
 };
 
-&ledc0{
-    pinctrl-0 = <&ledc0_default>;
-    pinctrl-names = "default";
-    status = "okay";
-    #address-cells = <1>;
-    #size-cells = <0>;
-
-    channel0@0 {
-        reg = <0x0>;
-        timer = <0>;
-    };
-};
-
-/* Setting the GPIO7 as the CS pin on SPI - for the LCD display. */
 &spi2 {
 	cs-gpios = <&gpio0 3 GPIO_ACTIVE_LOW>;
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&spim2_display>;
+};
 
-	mydisplay: mydisplay@0 {
-		compatible = "waveshare,gc9a01a";
-		spi-max-frequency = <2000000>;
-		reg = <0>;
-		cmd-data-gpios = <&gpio0 20  GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
-		backlight-gpios = <&pwm_led0>;
-		width = <240>;
-		height = <240>;
-		pixel-format = <GC9A01A_PIXEL_FORMAT_RGB565>;
-		display-inversion;
-		rotation = <180>;
-		status = "okay";
-		label = "GC9A01A Display";
-	};
+&rf_switch {
+	status = "disabled";
 };
 
 &i2c0 {
-    status = "okay";
+	status = "okay";
 	pinctrl-0 = <&i2c0_sensor>;
-    pinctrl-names = "default";
-    clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-names = "default";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
 };
