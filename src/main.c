@@ -98,6 +98,13 @@ static const struct gpio_dt_spec heater_gpio = GPIO_DT_SPEC_GET(DT_ALIAS(heater0
 #define HAS_HEATER_OUTPUT 0
 #endif
 
+#if DT_NODE_EXISTS(DT_ALIAS(led0))
+#define HAS_STATUS_LED 1
+static const struct gpio_dt_spec status_led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+#else
+#define HAS_STATUS_LED 0
+#endif
+
 #ifdef CONFIG_DISPLAY
 #if DT_NODE_EXISTS(DT_ALIAS(backlight0))
 #define HAS_DISPLAY_BACKLIGHT 1
@@ -190,6 +197,85 @@ static int heater_apply(struct app_state *state, bool active)
 #else
 	state->heater_on = false;
 	return active ? -ENODEV : 0;
+#endif
+}
+
+static int status_led_apply(bool on)
+{
+#if HAS_STATUS_LED
+	if (!gpio_is_ready_dt(&status_led)) {
+		return -ENODEV;
+	}
+
+	return gpio_pin_set_dt(&status_led, on ? 1 : 0);
+#else
+	ARG_UNUSED(on);
+	return -ENODEV;
+#endif
+}
+
+static int status_led_configure(void)
+{
+#if HAS_STATUS_LED
+	if (!gpio_is_ready_dt(&status_led)) {
+		LOG_WRN("Status LED GPIO is not ready");
+		return -ENODEV;
+	}
+
+	int ret = gpio_pin_configure_dt(&status_led, GPIO_OUTPUT_INACTIVE);
+	if (ret) {
+		LOG_WRN("Status LED configure failed: %d", ret);
+		return ret;
+	}
+
+	(void)status_led_apply(false);
+	LOG_INF("Status LED ready on %s pin %u", status_led.port->name, status_led.pin);
+	return 0;
+#else
+	return -ENODEV;
+#endif
+}
+
+static bool status_led_should_be_on(const struct app_state *state, int64_t now_ms)
+{
+	int32_t phase_ms;
+
+	if (state->heater_on) {
+		return true;
+	}
+
+	switch (state->fault) {
+	case APP_FAULT_SENSOR:
+	case APP_FAULT_OUTPUT:
+		return ((now_ms / 125) % 2) == 0;
+	case APP_FAULT_OVERTEMP:
+		phase_ms = now_ms % 1000;
+		return phase_ms < 120 || (phase_ms >= 240 && phase_ms < 360);
+	case APP_FAULT_NONE:
+	default:
+		break;
+	}
+
+	if (!state->running && state->sensor_online && state->have_sample) {
+		return (now_ms % 1000) < 180;
+	}
+
+	return false;
+}
+
+static void status_led_update(const struct app_state *state, int64_t now_ms)
+{
+#if HAS_STATUS_LED
+	static bool last_state;
+	bool new_state = status_led_should_be_on(state, now_ms);
+
+	if (new_state != last_state) {
+		(void)status_led_apply(new_state);
+		last_state = new_state;
+	}
+#else
+	ARG_UNUSED(state);
+	ARG_UNUSED(now_ms);
 #endif
 }
 
@@ -890,6 +976,7 @@ int main(void)
 
 	(void)heater_configure(&app);
 	(void)button_configure();
+	(void)status_led_configure();
 
 #ifdef CONFIG_DISPLAY
 	int ret = display_setup();
@@ -917,6 +1004,8 @@ int main(void)
 
 			heater_window_update(&app, now_ms);
 		}
+
+		status_led_update(&app, now_ms);
 
 #ifdef CONFIG_DISPLAY
 		if (elapsed(now_ms, &last_ui_ms, UI_PERIOD_MS)) {

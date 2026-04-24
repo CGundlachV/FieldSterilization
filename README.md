@@ -206,6 +206,15 @@ The display status line shows:
   reports a cooled temperature below the reset margin.
 - `FAULT output`: heater output is missing or failed to drive.
 
+On boards that expose a Zephyr `led0` alias, the firmware also drives the
+onboard status LED:
+
+- slow blink: ready to run
+- solid on: heater output currently active
+- fast blink: sensor or output fault
+- double blink: over-temperature fault
+- off: waiting for sensor or otherwise idle
+
 ## Troubleshooting
 
 On boot, the ESP32-C6 build prints an I2C scan. A connected default-address
