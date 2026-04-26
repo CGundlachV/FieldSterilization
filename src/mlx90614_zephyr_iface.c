@@ -4,7 +4,7 @@
 #include <string.h>
 #include "driver_mlx90614_interface.h"
 
-LOG_MODULE_REGISTER(mlx90614, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(mlx90614, LOG_LEVEL_DBG);
 
 static const struct device *i2c_dev;
 
@@ -12,6 +12,8 @@ uint8_t mlx90614_interface_iic_init(void)
 {
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(i2c21), okay)
     i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c21));
+#elif DT_NODE_HAS_STATUS(DT_NODELABEL(i2c_sensor), okay)
+    i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c_sensor));
 #else
     i2c_dev = DEVICE_DT_GET(DT_NODELABEL(i2c0));
 #endif

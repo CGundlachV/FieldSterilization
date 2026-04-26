@@ -7,6 +7,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/shell/shell.h>
 
 #include "mlx90614_read.h"
 
@@ -485,14 +486,20 @@ static void sensor_sample(struct app_state *state, int64_t now_ms)
 static bool can_start(const struct app_state *state)
 {
 	if (!state->heater_ready) {
+		LOG_WRN("can_start: heater not ready");
 		return false;
 	}
 
 	if (!state->sensor_online || !state->have_sample) {
+		LOG_WRN("can_start: sensor not ready (online=%d have_sample=%d)",
+			state->sensor_online, state->have_sample);
 		return false;
 	}
 
 	if (state->filtered_c >= (MAX_SAFE_C - FAULT_RESET_MARGIN_C)) {
+		LOG_WRN("can_start: temp %.1f C above reset margin %.1f C",
+			(double)state->filtered_c,
+			(double)(MAX_SAFE_C - FAULT_RESET_MARGIN_C));
 		return false;
 	}
 
@@ -507,6 +514,7 @@ static void toggle_run(struct app_state *state, int64_t now_ms)
 		return;
 	}
 
+	LOG_INF("Start requested");
 	if (!can_start(state)) {
 		if (!state->heater_ready) {
 			state->fault = APP_FAULT_OUTPUT;
@@ -608,6 +616,8 @@ static void i2c_scan(void)
 {
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(i2c21), okay)
 	const struct device *i2c = DEVICE_DT_GET(DT_NODELABEL(i2c21));
+#elif DT_NODE_HAS_STATUS(DT_NODELABEL(i2c_sensor), okay)
+	const struct device *i2c = DEVICE_DT_GET(DT_NODELABEL(i2c_sensor));
 #else
 	const struct device *i2c = DEVICE_DT_GET(DT_NODELABEL(i2c0));
 #endif
@@ -959,6 +969,30 @@ static int display_setup(void)
 	return 0;
 }
 #endif /* CONFIG_DISPLAY */
+
+static int cmd_run_toggle(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(sh);
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	toggle_run(&app, k_uptime_get());
+	return 0;
+}
+
+SHELL_CMD_REGISTER(heater_run, NULL, "Toggle heater run/stop", cmd_run_toggle);
+
+static int cmd_run_stop(const struct shell *sh, size_t argc, char **argv)
+{
+	ARG_UNUSED(sh);
+	ARG_UNUSED(argc);
+	ARG_UNUSED(argv);
+	if (app.running) {
+		controller_stop(&app);
+	}
+	return 0;
+}
+
+SHELL_CMD_REGISTER(heater_stop, NULL, "Stop heater and clear duty cycle", cmd_run_stop);
 
 int main(void)
 {

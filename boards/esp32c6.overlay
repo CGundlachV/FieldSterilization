@@ -3,6 +3,7 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/pinctrl/esp32c6-pinctrl.h>
+#include <zephyr/dt-bindings/i2c/i2c.h>
 
 / {
 	chosen {
@@ -29,7 +30,7 @@
 		compatible = "gpio-leds";
 
 		heater_output: heater-output {
-			gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
 			label = "Heater control output";
 		};
 	};
@@ -69,15 +70,6 @@
 			output-low;
 		};
 	};
-
-	i2c0_sensor: i2c0_sensor {
-		group1 {
-			pinmux = <I2C0_SDA_GPIO22>, <I2C0_SCL_GPIO23>;
-			bias-pull-up;
-			drive-open-drain;
-			output-high;
-		};
-	};
 };
 
 &spi2 {
@@ -91,9 +83,20 @@
 	status = "disabled";
 };
 
+/* Disable the hardware I2C peripheral — it has known issues on ESP32C6 with Zephyr */
 &i2c0 {
-	status = "okay";
-	pinctrl-0 = <&i2c0_sensor>;
-	pinctrl-names = "default";
-	clock-frequency = <I2C_BITRATE_STANDARD>;
+	status = "disabled";
+};
+
+/* Software bitbang I2C on the same GPIO22/23 pins */
+/ {
+	i2c_sensor: i2c_sensor {
+		compatible = "gpio-i2c";
+		sda-gpios = <&gpio0 22 (GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
+		scl-gpios = <&gpio0 23 (GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
+		clock-frequency = <I2C_BITRATE_STANDARD>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
+	};
 };

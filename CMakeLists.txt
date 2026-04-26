@@ -41,6 +41,7 @@ target_sources(app PRIVATE
     src/main.c
     src/mlx90614_zephyr_iface.c
     src/mlx90614_read.c
+    src/heater_pwm_shell.c
 )
 
 # Link the MLX90614 driver library to the application

@@ -56,7 +56,7 @@ This is the default display target selected by `CMakeLists.txt`.
 - Display: Adafruit GC9A01A 240 x 240 SPI LCD, product 6178
 - Sensor: MLX90614 on I2C0
 - Run/stop input: onboard BOOT-style button on GPIO9, active low
-- Heater output: GPIO14, active high
+- Heater output: GPIO8, active high
 - Display backlight: left unconnected by default; Adafruit pulls `BL/Lite`
   active
 
@@ -72,7 +72,7 @@ Display BL/Lite       unconnected, or 3.3 V for full brightness
 MLX90614 SDA          GPIO22
 MLX90614 SCL          GPIO23
 Run/stop button       GPIO9
-Heater output         GPIO14
+Heater output         GPIO8
 ```
 
 The Zephyr target is kept on `xiao_esp32c6/esp32c6/hpcore` because it matches
